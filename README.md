@@ -1,0 +1,1 @@
+Тестовая реализация чата на AioHTTP и SQLAlchemy
