@@ -6,7 +6,7 @@ config.DATABASE = 'sqlite+aiosqlite:///' + db_path
 
 from unittest import IsolatedAsyncioTestCase
 from app import setup
-from chat.models import User
+from chat.models import User, Chat
 
 from chat.services import UserService, ChatService, MessageService, UserAlreadyExistsException, \
     UserDoesNotExistsException
@@ -57,4 +57,26 @@ class UserServiceTest(BaseTest):
         else:
             raise AssertionError
 
+
+class ChatServiceTest(BaseTest):
+    async def test_creating_chat(self):
+        user1 = await UserService.create(login='User1', password='123')
+        user2 = await UserService.create(login='User2', password='123')
+        user3 = await UserService.create(login='User3', password='123')
+        chat = await ChatService.create(name='Test chat', owner=user1, users=[user2])
+        created_chat = await Chat.get(chat.id)
+        self.assertEqual(chat.name, created_chat.name)
+        self.assertEqual(chat.owner, created_chat.owner)
+        # в списке членов чата должн быть и владелец чата
+        self.assertSetEqual(set(chat.users), {user1, user2})
+
+    async def test_creating_chat_with_not_existing_user_raise_error(self):
+        not_existing_id = 999
+        user3 = await UserService.create(login='User3', password='123')
+        try:
+            chat = await ChatService.create(name='Test chat', owner_id=not_existing_id)
+        except UserDoesNotExistsException:
+            pass
+        else:
+            raise AssertionError
 

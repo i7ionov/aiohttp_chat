@@ -17,8 +17,8 @@ class UserDoesNotExistsException(HandledException):
 class UserService:
     @classmethod
     async def create(cls, **kwargs):
-        users = await User.filter(User.login==kwargs['login'])
-        if users:
+        found_users = await User.filter(User.login==kwargs['login'])
+        if found_users:
             raise UserAlreadyExistsException
         user = await User.create(**kwargs)
         return user
@@ -32,9 +32,36 @@ class UserService:
             raise UserDoesNotExistsException
 
 
+class ChatAlreadyExistsException(HandledException):
+    text = 'Чат с таким названием уже существует'
+
 
 class ChatService:
-    pass
+    @classmethod
+    async def create(cls, owner_id, **kwargs):
+        found_chats = await Chat.filter(Chat.name==kwargs['name'])
+        if found_chats:
+            raise ChatAlreadyExistsException
+        try:
+            await User.get(owner_id)
+        except NoResultFound:
+            raise UserDoesNotExistsException
+        if 'users' in kwargs:
+            kwargs['users'].append(kwargs['owner'])
+        chat = await Chat.create(owner_id=owner_id, **kwargs)
+        return chat
+
+    @classmethod
+    async def update(cls, item_id, owner_id, **kwargs):
+        try:
+            user = await User.get(owner_id)
+        except NoResultFound:
+            raise UserDoesNotExistsException
+        try:
+            await Chat.update(item_id,**kwargs)
+            return await Chat.get(item_id)
+        except NoResultFound:
+            raise UserDoesNotExistsException
 
 
 class MessageService:
